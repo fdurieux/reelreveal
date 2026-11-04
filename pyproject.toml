@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reelreveal"
+version = "0.1.0"
+description = "Extract Instagram Reel frames and identify visible items with a configured vision model"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["yt-dlp>=2024.10.22"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "behave>=1.2.6,<2", "ruff>=0.9,<1"]
+
+[project.scripts]
+reelreveal = "reelreveal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "SIM"]
