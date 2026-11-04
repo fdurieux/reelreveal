@@ -17,24 +17,70 @@ cd reelreveal
 reelreveal --help
 ```
 
-The installer creates `.venv`, installs the CLI and yt-dlp, and checks FFmpeg.
-Use `./scripts/install.sh --dev` to include test and lint tools. It does not install
-system packages, Ollama, or model weights. Windows users can install FFmpeg,
-run `py -m venv .venv`, then `.venv\Scripts\python -m pip install -e ".[dev]"`.
+The installer creates `.venv`, installs ReelReveal and yt-dlp, checks FFmpeg,
+installs [Ollama](https://ollama.com/download) if missing, starts or reuses its local
+server, and pulls **`gemma3:4b`**. Finally it checks the model's advertised vision
+capability via Ollama's `/api/show` endpoint. An error at any step returns a nonzero
+exit code; success does not certify inference performance or identification accuracy.
 
-## Identify items with a real provider
+Automatic Ollama setup supports **macOS and Linux**, subject to Ollama's own OS
+and hardware requirements. Missing installations use the
+[official HTTPS installer](https://github.com/ollama/ollama/blob/main/scripts/install.sh),
+which is downloaded fully before execution and may request administrator privileges.
+It can install system files and, on Linux with systemd, create/start a service.
+An existing Ollama executable or macOS application is reused without reinstalling
+or upgrading it. The installer does not install FFmpeg or other OS prerequisites
+(such as curl, unzip on macOS, or zstd on current Linux installations).
 
-Install [Ollama](https://ollama.com/) separately, start its service, and download
-an image-capable model supported by your machine. Set `MODEL` below to that exact
-installed model name. ReelReveal intentionally has no implicit model or fabricated
-fallback. A text-only model will fail when receiving images.
+[Gemma 3 4B](https://ollama.com/library/gemma3:4b) supports image input and is a
+compact starting point for local vision, not a validated record identification
+model. Its current download is about **3.4 GB**, plus Ollama and additional runtime
+storage. Allow several GB of spare disk and sufficient RAM/VRAM; 8–16 GB of system
+RAM is a practical planning starting point, not a guaranteed minimum for every
+machine or context size. CPU inference can be slow. Larger models need more memory.
+The model has its own [Gemma terms](https://ai.google.dev/gemma/terms), separate
+from this project's MIT license. Model tags and download sizes can change.
 
 ```sh
-MODEL='your-installed-vision-model'
-reelreveal 'https://www.instagram.com/reel/REEL_ID/' --model "$MODEL"
-reelreveal 'https://www.instagram.com/reel/REEL_ID/' --model "$MODEL" --identify 'sneakers and brand names'
-reelreveal --video ./authorized-reel.mp4 --model "$MODEL" --frames 12
+./scripts/install.sh --dev                     # include test/lint tools and vision setup
+./scripts/install.sh --model gemma3:12b         # choose a larger vision model
+OLLAMA_MODEL=gemma3:4b ./scripts/install.sh     # environment default; --model takes precedence
+./scripts/install.sh --skip-vision             # Python CLI only; no Ollama changes/downloads
+./scripts/install.sh --dev --skip-vision       # development/CI without multi-GB downloads
 ```
+
+Flags can be combined in any order. Model downloads have a one-hour timeout;
+rerunning resumes/reuses layers through `ollama pull`. Setup uses the same local
+`127.0.0.1:11434` endpoint as the CLI, overriding `OLLAMA_HOST` for its subprocesses.
+If no server is ready, setup starts a detached `ollama serve`, waits up to roughly
+60 seconds, and records its log/PID in `.venv/ollama-serve.log` and
+`.venv/ollama-serve.pid`. A server started by setup remains running after success;
+the printed PID can be stopped with `kill <PID>`. On failure, setup stops only the
+server it started; an existing/system service is left running. Start `ollama serve`
+again after reboot if you do not have an Ollama application/system service running.
+
+On failure, check the printed error, logs, disk space, network access and permissions,
+then rerun the installer. Update an existing old Ollama version manually if model
+pulls or capability checks fail. No silent fallback to a text-only model occurs.
+Use `--skip-vision` with `--provider none` if you only need frame extraction.
+For Windows, install FFmpeg and Ollama manually, run `py -m venv .venv`, then
+`.venv\Scripts\python -m pip install -e ".[dev]"` and `ollama pull gemma3:4b`.
+Native Windows automatic installation is not provided by the shell script.
+
+## Identify items with the installed model
+
+After the default installation:
+
+```sh
+. .venv/bin/activate
+reelreveal 'https://www.instagram.com/reel/REEL_ID/' --model gemma3:4b
+reelreveal 'https://www.instagram.com/reel/REEL_ID/' --model gemma3:4b --identify 'sneakers and brand names'
+reelreveal --video ./authorized-reel.mp4 --model gemma3:4b --frames 12
+```
+
+If you selected another model during setup, pass that same name to `--model`.
+The CLI still requires an explicit model selection; installation does not change
+its runtime defaults. Setup checks model metadata, not a real image inference.
 
 `--video` skips Instagram access. You may also supply a URL with `--video` to keep
 the canonical Reel URL as report provenance. `--identify` defaults to
@@ -101,9 +147,10 @@ Only analyze media you are allowed to access.
 
 Implemented: retrieval, local fallback, real JPEG sampling, working Ollama HTTP
 integration, JSON schema validation, timestamped evidence, installation and CI.
-External dependencies: yt-dlp's Instagram support, FFmpeg, and a separately
-installed functioning vision model. **No real-world identification accuracy has
-been established.** Automated provider tests use controlled HTTP responses;
+External dependencies: yt-dlp's Instagram support, FFmpeg, Ollama, and a functioning
+vision model. The default installer provisions Ollama/model weights; they remain
+external software and are not bundled with this repository. **No real-world
+identification accuracy has been established.** Automated provider tests use controlled HTTP responses;
 no live Instagram retrieval or real model inference is part of CI.
 
 Uniform sampling can miss brief appearances. Low resolution, motion blur,
@@ -118,7 +165,7 @@ names; inspect before sharing reports.
 ## Tests
 
 ```sh
-./scripts/install.sh --dev
+./scripts/install.sh --dev --skip-vision
 .venv/bin/ruff check .
 .venv/bin/pytest -q
 .venv/bin/behave
@@ -129,6 +176,10 @@ provider requests and malformed responses, and CLI validation. A generated video
 integration test runs real ffprobe/FFmpeg and checks the extraction-only JSON report;
 it skips locally if FFmpeg is absent. Executable Gherkin scenarios in `features/`
 cover default/custom targets, inaccessible Reels and honest extraction-only output.
+Installer tests exercise fresh/reused installations, local server lifecycle, failed
+downloads, model capability checks, custom model names and the skip option using
+controlled commands/API responses. They do not install system software, download
+model weights or verify real inference. CI uses `--skip-vision`.
 GitHub Actions installs FFmpeg and runs these checks on Python 3.11, 3.12 and 3.13.
 
 MIT licensed; see [LICENSE](LICENSE).
