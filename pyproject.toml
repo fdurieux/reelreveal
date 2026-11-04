@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "reelreveal"
 version = "0.1.0"
 description = "Extract Instagram Reel frames and identify visible items with a configured vision model"
-requires-python = ">=3.10"
-license = {text = "MIT"}
+requires-python = ">=3.11"
+license = "MIT"
 dependencies = ["yt-dlp>=2024.10.22"]
 
 [project.optional-dependencies]

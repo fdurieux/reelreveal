@@ -6,7 +6,7 @@ are timestamped, unverified candidates with visual evidence, not catalog matches
 
 ## Install
 
-Requires Python 3.10+, FFmpeg and ffprobe on PATH. On macOS install FFmpeg with
+Requires Python 3.11+, FFmpeg and ffprobe on PATH. On macOS install FFmpeg with
 `brew install ffmpeg`; on Debian/Ubuntu use `sudo apt-get install ffmpeg`.
 
 ```sh
@@ -129,6 +129,6 @@ provider requests and malformed responses, and CLI validation. A generated video
 integration test runs real ffprobe/FFmpeg and checks the extraction-only JSON report;
 it skips locally if FFmpeg is absent. Executable Gherkin scenarios in `features/`
 cover default/custom targets, inaccessible Reels and honest extraction-only output.
-GitHub Actions installs FFmpeg and runs these checks on Python 3.10, 3.12 and 3.13.
+GitHub Actions installs FFmpeg and runs these checks on Python 3.11, 3.12 and 3.13.
 
 MIT licensed; see [LICENSE](LICENSE).

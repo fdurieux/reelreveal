@@ -2,7 +2,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 PYTHON="${PYTHON:-python3}"
-"$PYTHON" -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
+"$PYTHON" -c 'import sys; assert sys.version_info >= (3, 11), "Python 3.11+ required"'
 "$PYTHON" -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 if [ "${1:-}" = "--dev" ]; then
